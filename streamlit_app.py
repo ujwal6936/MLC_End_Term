@@ -19,7 +19,7 @@ model.eval()
 def generate_image_caption(image):
     # Preprocess image
     preprocess = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((224, 224)),  # Resize the image to 224x224
         transforms.ToTensor(),
     ])
     image = preprocess(image).unsqueeze(0)
@@ -41,7 +41,7 @@ def generate_image_caption(image):
     caption = tokenizer.decode(caption_ids.squeeze().tolist())
 
     return caption
-
+    
 def main():
     st.title("Image Captioning App")
     st.write("Upload an image and get its description.")
