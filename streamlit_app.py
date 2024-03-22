@@ -37,10 +37,16 @@ def generate_image_caption(image):
     inputs_embeds = model.embeddings.word_embeddings(inputs)
     inputs_embeds[:, 1] = image_embedding
     outputs = model(inputs_embeds=inputs_embeds)
-    caption_ids = torch.argmax(outputs.logits, dim=-1)
+
+    # Get the prediction
+    logits = outputs.logits
+    caption_ids = torch.argmax(logits, dim=-1)
+
+    # Decode the prediction
     caption = tokenizer.decode(caption_ids.squeeze().tolist())
 
     return caption
+
     
 def main():
     st.title("Image Captioning App")
