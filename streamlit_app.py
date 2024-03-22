@@ -1,69 +1,51 @@
-# app.py
 import streamlit as st
 from PIL import Image
+import torch
+import torchvision.transforms as transforms
+from torchvision import models
 import requests
 from io import BytesIO
 
-# Importing the required libraries for image captioning
-import torch
-from torchvision import transforms
-from transformers import BertTokenizer, BertModel
-import numpy as np
-
-# Load pre-trained BERT model and tokenizer
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased').to(device)
-model.eval()
-
-def generate_image_caption(image):
-    # Preprocess image
+# Function to load and preprocess the image
+def preprocess_image(image):
     preprocess = transforms.Compose([
-        transforms.Resize((224, 224)),  # Resize the image to 224x224
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     image = preprocess(image).unsqueeze(0)
+    return image
 
-    # Run image through BERT model
-    with torch.no_grad():
-        outputs = model(image.to(device))
-        embeddings = outputs.last_hidden_state
+# Function to perform image classification
+def classify_image(image):
+    model = models.resnet18(pretrained=True)
+    model.eval()
+    outputs = model(image)
+    _, predicted = torch.max(outputs, 1)
+    return predicted
 
-    # Average pooling to get image embedding
-    image_embedding = torch.mean(embeddings, dim=1).squeeze()
-
-    # Generate caption
-    inputs = tokenizer.encode("Describe the image:", add_special_tokens=True, return_tensors="pt").to(device)
-    inputs_embeds = model.embeddings.word_embeddings(inputs)
-    inputs_embeds[:, 1] = image_embedding
-    outputs = model(inputs_embeds=inputs_embeds)
-
-    # Get the prediction
-    logits = outputs.logits
-    caption_ids = torch.argmax(logits, dim=-1)
-
-    # Decode the prediction
-    caption = tokenizer.decode(caption_ids.squeeze().tolist())
-
-    return caption
-
-    
+# Streamlit app
 def main():
-    st.title("Image Captioning App")
-    st.write("Upload an image and get its description.")
+    st.title("Image Classification App")
+
+    st.write("This app takes an image as input and performs image classification.")
 
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
         st.image(image, caption='Uploaded Image.', use_column_width=True)
-        st.write("")
-        st.write("Generating description...")
 
-        # Generate and display image caption
-        caption = generate_image_caption(image)
-        st.write("### Description:")
-        st.write(caption)
+        # Preprocess the image
+        image_tensor = preprocess_image(image)
+
+        # Perform image classification
+        prediction = classify_image(image_tensor)
+
+        # Output the prediction
+        st.write("Prediction:")
+        st.write(prediction)
 
 if __name__ == '__main__':
     main()
