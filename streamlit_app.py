@@ -23,7 +23,16 @@ def classify_image(image):
     model.eval()
     outputs = model(image)
     _, predicted = torch.max(outputs, 1)
-    return predicted
+
+    # Load ImageNet class labels
+    classes = []
+    with open("imagenet_classes.txt", "r") as f:
+        classes = [line.strip() for line in f.readlines()]
+
+    # Map prediction index to class name
+    predicted_label = classes[predicted]
+
+    return predicted_label
 
 # Streamlit app
 def main():
